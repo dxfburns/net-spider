@@ -28,7 +28,7 @@ struct hostent* Host;
 //string START_URL = "http://baike.baidu.com/view/1177115.htm";
 //string KEYWORD = "1177115"; // "yuanmeng001";
 string START_URL = "http://blog.csdn.net/yuanmeng001";
-string KEYWORD =  "index";
+string KEYWORD = "index";
 int MAX_URL = INF;
 int TIMEOUT = 20;
 
@@ -71,7 +71,7 @@ int ConnectWeb(int& sockfd) {
 	server_addr.sin_addr = *((struct in_addr*) Host->h_addr);
 	//server_addr.sin_addr.s_addr = inet_addr("baike.baidu.com");//htonl(INADDR_ANY);
 
-	int ret = connect(sockfd, (struct sockaddr*)(&server_addr), sizeof(server_addr));
+	int ret = connect(sockfd, (struct sockaddr*) (&server_addr), sizeof(server_addr));
 	if (ret < 0) {
 		return -1;
 	}
@@ -132,27 +132,37 @@ void* GetResponse(void* argument) {
 
 	//*tmp = 0;
 	//clear buffer
-	memset(tmp, 0, 1);
-	memset(ch, 0 , 1);
+	bzero(ch, 2);
 
 	int j = 0, n;
-	while (true) {
-		n = read(sockfd, ch, 1);
-		if (n < 0) {
-			if (errno == EAGAIN) {
-				sleep(1);
-				continue;
-			}
-		}
-		if (*ch == '>') {
-			head_buffer[j++] = *ch;
-			break;
-		}
-	}
-	head_buffer[j++] = 0;
+//	while (true) {
+//		n = read(sockfd, ch, 1);
+//		if (n < 0) {
+//			if (errno == EAGAIN) {
+//				sleep(1);
+//				continue;
+//			}
+//		}
+//		if (*ch == '>') {
+//			head_buffer[j++] = *ch;
+//			break;
+//		}
+//	}
+//	head_buffer[j++] = 0;
 
 	int need = sizeof(buffer);
 	timeout = 0;
+	memset(tmp, '\0', MAXLEN);
+
+	n = read(sockfd, buffer, need);
+	if (!n)
+		return NULL;
+
+	string head_str(buffer);
+	string::size_type pos = head_str.find("<html");
+	string top = head_str.substr(pos, head_str.length());
+	sum_byte += (head_str.length() - pos);
+	strncat(tmp, top.c_str(), head_str.length() - pos);
 
 	while (true) {
 		n = read(sockfd, buffer, need);
@@ -187,7 +197,7 @@ void* GetResponse(void* argument) {
 	flen = HtmFile.length();
 
 	int dir = chdir("Pages");
-	if(!dir) {
+	if (!dir) {
 		perror("Pages does not exist");
 		return NULL;
 	}
