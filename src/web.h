@@ -59,9 +59,10 @@ private:
 	string Fname;
 };
 
-unsigned int hash(const char*);
+unsigned int Hash(const char*);
 int SetUrl(URL&, string&);
 void ToLower(string&);
+string GetKeyword(string&);
 void Analyse(string&);
 
 #endif /* WEB_H_ */

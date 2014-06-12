@@ -23,9 +23,9 @@ int pending;					// record pending urls that wait to deal with
 int epfd;						// record the epoll fd.
 bool is_first_url;				// judge whether is the first url.
 double time_used;               // record totally time costed.
-pthread_mutex_t que_lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t set_lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t conn_lock = PTHREAD_MUTEX_INITIALIZER;
+//pthread_mutex_t que_lock = PTHREAD_MUTEX_INITIALIZER;
+//pthread_mutex_t set_lock = PTHREAD_MUTEX_INITIALIZER;
+//pthread_mutex_t conn_lock = PTHREAD_MUTEX_INITIALIZER;
 string input;
 string HtmFile;
 string keyword;
@@ -88,6 +88,15 @@ int Parse(int argc, char** argv) {
 	return ret;
 }
 
+#include <boost/thread.hpp>
+#include <boost/bind.hpp>
+#include <boost/function.hpp>
+using namespace boost;
+
+boost::mutex b_que_lock;
+boost::mutex b_set_lock;
+boost::mutex b_conn_lock;
+
 int main() {
 	init();
 
@@ -105,16 +114,18 @@ int main() {
 
 	cout << "Start fetching url: " << url.GetHost() << url.GetFile() << endl;
 
-	unsigned int hash_val = hash(url.GetFile().c_str());
+	unsigned int hash_val = Hash(url.GetFile().c_str());
 	char tmp[31];
 
 	sprintf(tmp, "%010u", hash_val);
 	url.SetFname(string(tmp) + ".html");
 	que.push(url);
 
-	pthread_mutex_lock(&set_lock);
+	mutex::scoped_lock mu(b_set_lock);
+	//pthread_mutex_lock(&set_lock);
 	Set.insert(hash_val);
-	pthread_mutex_unlock(&set_lock);
+	//pthread_mutex_unlock(&set_lock);
+	mu.unlock();
 
 	epfd = epoll_create(50);
 
@@ -123,10 +134,12 @@ int main() {
 
 	int timeout;
 	for (int i = 0; i < n; ++i) {
-		pthread_mutex_lock(&que_lock);
+		b_que_lock.lock();
+//		pthread_mutex_lock(&que_lock);
 		URL url_t = que.front();
 		que.pop();
-		pthread_mutex_unlock(&que_lock);
+//		pthread_mutex_unlock(&que_lock);
+		b_que_lock.unlock();
 
 		int sock_fd;
 		timeout = 0;
@@ -209,7 +222,11 @@ int main() {
 //			}
 //
 //			pthread_attr_destroy(&pAttr);
-			GetResponse(arg);
+//			GetResponse(arg);
+
+			function<void*(void*)> func = bind(GetResponse, _1);
+			func(arg);
+//			boost::thread th(func, arg);
 
 			struct epoll_event ev;
 			int r = epoll_ctl(epfd, EPOLL_CTL_DEL, arg->sockfd, &ev);
@@ -218,6 +235,8 @@ int main() {
 				perror("epoll_ctl_del");
 				continue;
 			}
+
+//			th.join();
 		}
 	}
 

@@ -10,11 +10,11 @@ extern set<unsigned int> Set;
 extern URL url;
 extern queue<URL> que;
 extern string keyword;
-extern pthread_mutex_t que_lock;
-extern pthread_mutex_t set_lock;
+//extern pthread_mutex_t que_lock;
+//extern pthread_mutex_t set_lock;
 const unsigned int MOD = 0x7fffffff;
 
-unsigned int hash(const char* s) {
+unsigned int Hash(const char* s) {
 	unsigned int h = 0, g;
 
 	while (*s) {
@@ -82,6 +82,11 @@ void ToLower(string& str) {
 			str[i] = str[i] + ('a' - 'A');
 		}
 	}
+}
+
+#include <boost/thread.hpp>
+string GetKeyword(string& src) {
+
 }
 
 void Analyse(string& src) {
@@ -153,19 +158,27 @@ void Analyse(string& src) {
 		cout<<p<<" " <<p1<<" " <<p2<<" " << url.GetFile() << endl;
 #endif
 
-		unsigned int hash_val = hash(url.GetFile().c_str());
+		unsigned int hash_val = Hash(url.GetFile().c_str());
 		char tmp[31];
 
 		sprintf(tmp, "%010u", hash_val);
 
 		if (Set.find(hash_val) == Set.end()) {
-			pthread_mutex_lock(&set_lock);
+			boost::mutex mu_set;
+			mu_set.lock();
+			//pthread_mutex_lock(&set_lock);
 			Set.insert(hash_val);
-			pthread_mutex_unlock(&set_lock);
+			//pthread_mutex_unlock(&set_lock);
+			mu_set.unlock();
+
 			url.SetFname(string(tmp) + ".html");
-			pthread_mutex_lock(&que_lock);
+
+			boost::mutex mu_que;
+			mu_que.lock();
+			//pthread_mutex_lock(&que_lock);
 			que.push(url);
-			pthread_mutex_unlock(&que_lock);
+			//pthread_mutex_unlock(&que_lock);
+			mu_que.unlock();
 		}
 		src = src.substr(p2 + 1, src.length() - p2);
 		//src.insert(p1 - 1, "\"" + string(tmp) + "html\" ");

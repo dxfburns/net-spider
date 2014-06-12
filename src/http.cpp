@@ -20,8 +20,8 @@ extern int pending;
 //extern int TIMEOUT;
 extern bool is_first_url;
 extern double time_used;
-extern pthread_mutex_t que_lock;
-extern pthread_mutex_t conn_lock;
+//extern pthread_mutex_t que_lock;
+//extern pthread_mutex_t conn_lock;
 
 struct hostent* Host;
 
@@ -54,6 +54,7 @@ int SetNoBlocking(const int& sockfd) {
 	return 1;
 }
 
+#include <boost/thread.hpp>
 int ConnectWeb(int& sockfd) {
 	struct sockaddr_in server_addr;
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -80,9 +81,10 @@ int ConnectWeb(int& sockfd) {
 	puts("Connect OK");
 #endif
 
-	pthread_mutex_lock(&conn_lock);
+	boost::mutex::scoped_lock lock;
+	//pthread_mutex_lock(&conn_lock);
 	++pending;
-	pthread_mutex_unlock(&conn_lock);
+	//pthread_mutex_unlock(&conn_lock);
 
 	return 1;
 }
@@ -123,38 +125,23 @@ double Calc_Time_Sec(struct timeval st, struct timeval ed) {
 	return sec + usec / 1000000;
 }
 
+#include <boost/thread.hpp>
 void* GetResponse(void* argument) {
 	struct argument* ptr = (struct argument*) argument;
 	struct stat buf;
 	int timeout, flen, sockfd = ptr->sockfd;
-	char ch[2], buffer[8192], head_buffer[2048], tmp[MAXLEN];
+	char ch[2], buffer[8192], tmp[MAXLEN];
 	URL url_t = ptr->url;
 
 	//*tmp = 0;
 	//clear buffer
 	bzero(ch, 2);
 
-	int j = 0, n;
-//	while (true) {
-//		n = read(sockfd, ch, 1);
-//		if (n < 0) {
-//			if (errno == EAGAIN) {
-//				sleep(1);
-//				continue;
-//			}
-//		}
-//		if (*ch == '>') {
-//			head_buffer[j++] = *ch;
-//			break;
-//		}
-//	}
-//	head_buffer[j++] = 0;
-
 	int need = sizeof(buffer);
 	timeout = 0;
 	memset(tmp, '\0', MAXLEN);
 
-	n = read(sockfd, buffer, need);
+	int n = read(sockfd, buffer, need);
 	if (!n)
 		return NULL;
 
@@ -225,15 +212,16 @@ void* GetResponse(void* argument) {
 	write(fd, HtmFile.c_str(), HtmFile.length());
 
 	NEXT: close(fd);
-	pthread_mutex_lock(&conn_lock);
+	boost::mutex mu;
+//	pthread_mutex_lock(&conn_lock);
 	--pending;
 	++cnt;
 	gettimeofday(&t_ed, NULL);
 	time_used = Calc_Time_Sec(t_st, t_ed);
 	printf("S:%-6.2fKB  I:%-5dP:%-5dC:%-5d", flen / 1024.0, que.size(), pending, cnt);
 	printf("[re-]fetch:[%s]->[%s]\n", url_t.GetFile().c_str(), url_t.GetFname().c_str());
-	pthread_mutex_unlock(&conn_lock);
-
+//	pthread_mutex_unlock(&conn_lock);
+	mu.unlock();
 	// judge how many new url in wait-queue can pop()
 	if (pending <= 30) {
 		n = 5;
@@ -252,10 +240,12 @@ void* GetResponse(void* argument) {
 			}
 		}
 
-		pthread_mutex_lock(&que_lock);
+		mu.lock();
+		//pthread_mutex_lock(&que_lock);
 		URL m_url = que.front();
 		que.pop();
-		pthread_mutex_unlock(&que_lock);
+		//pthread_mutex_unlock(&que_lock);
+		mu.unlock();
 
 		int sock_fd;
 		timeout = 0;
