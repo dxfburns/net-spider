@@ -85,8 +85,47 @@ void ToLower(string& str) {
 }
 
 #include <boost/thread.hpp>
-string GetKeyword(string& src) {
+string GetValue(string& html, const string key) {
+	string::size_type pos = html.find(key);
+	if (pos == string::npos)
+		return "";
 
+	pos += key.size();
+	char c = html[pos];
+	string value;
+	while (c != '"' && pos < html.size()) {
+		value += c;
+		c = html[++pos];
+	}
+
+	return value;
+}
+
+string GetKeyword(string& src) {
+	string keys[] = { "id=\"kw\"", "id=\"word\"" };
+	unsigned len = sizeof(keys) / sizeof(keys[0]);
+	for (size_t i = 0; i < len; ++i) {
+		string key(keys[i]);
+		string::size_type pos = src.find(key);
+		if (pos == string::npos)
+			continue;
+
+		unsigned begin(pos), end(pos);
+		char c(src[begin]);
+		while (c != '<' && begin > 0) {
+			c = src[--begin];
+		}
+
+		c = src[end];
+		while (c != '/' && end < src.size()) {
+			c = src[++end];
+		}
+
+		string sub_html = src.substr(begin, end - begin);
+		return GetValue(sub_html, "value=\"");
+	}
+
+	return "";
 }
 
 void Analyse(string& src) {

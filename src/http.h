@@ -29,13 +29,13 @@ struct argument {
 	argument(){}
 };
 
-#define UAGENT "BaiduSpider"
+#define UAGENT "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36"
 #define ACCEPT "*/*"
 #define CONN "keep-alive"
 
 int GetHostByName(const string&);
 int SetNoBlocking(const int&);
-int ConnectWeb(int&);
+int ConnectWebHost(int&);
 int SendRequest(int, URL&);
 double Calc_Time_Sec(struct timeval st, struct timeval ed);
 void* GetResponse(void*);

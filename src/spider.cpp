@@ -143,10 +143,10 @@ int main() {
 
 		int sock_fd;
 		timeout = 0;
-		ret = ConnectWeb(sock_fd);
+		ret = ConnectWebHost(sock_fd);
 		while (ret < 0 && timeout < 10) {
 			++timeout;
-			ret = ConnectWeb(sock_fd);
+			ret = ConnectWebHost(sock_fd);
 		}
 
 		if (timeout > 10) {

@@ -27,7 +27,7 @@ struct hostent* Host;
 
 //string START_URL = "http://baike.baidu.com/view/1177115.htm";
 //string KEYWORD = "1177115"; // "yuanmeng001";
-string START_URL = "http://blog.csdn.net/yuanmeng001";
+string START_URL = "http://baike.baidu.com/link?url=uYZ-mszGpceTfuHuNdC0NZBjnoTlVrT00woInZY_6VSTWSJ1LEK1Wre0d12WmGi1Duwc-yArcCsQRYmZ68Z60q"; //"http://blog.csdn.net/yuanmeng001";
 string KEYWORD = "index";
 int MAX_URL = INF;
 int TIMEOUT = 20;
@@ -55,7 +55,7 @@ int SetNoBlocking(const int& sockfd) {
 }
 
 #include <boost/thread.hpp>
-int ConnectWeb(int& sockfd) {
+int ConnectWebHost(int& sockfd) {
 	struct sockaddr_in server_addr;
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd == -1) {
@@ -89,10 +89,12 @@ int ConnectWeb(int& sockfd) {
 	return 1;
 }
 
+#include <boost/algorithm/string.hpp>
 int SendRequest(int sockfd, URL& url_t) {
 	string request;
 	string Uagent = UAGENT, Conn = CONN, Accept = ACCEPT;
-	request = "GET /" + url_t.GetFile() + " HTTP/1.1\r\nHost: " + url_t.GetHost() + "\r\nUser-Agent: " + Uagent + "\r\nAccept: " + Accept + "\r\nConnection: "
+	string sub_url = url_t.GetFile()[0] == '/' ? boost::replace_first_copy(url_t.GetFile(), "/", "") : url_t.GetFile();
+	request = "GET /" + sub_url + " HTTP/1.1\r\nHost: " + url_t.GetHost() + "\r\nUser-Agent: " + Uagent + "\r\nAccept: " + Accept + "\r\nConnection: "
 			+ Conn + "\r\n\r\n";
 	int d, total = request.length(), send = 0;
 	while (send < total) {
@@ -130,14 +132,14 @@ void* GetResponse(void* argument) {
 	struct argument* ptr = (struct argument*) argument;
 	struct stat buf;
 	int timeout, flen, sockfd = ptr->sockfd;
-	char ch[2], buffer[8192], tmp[MAXLEN];
+	char ch[2], buffer[2048], tmp[MAXLEN];
 	URL url_t = ptr->url;
 
 	//*tmp = 0;
 	//clear buffer
 	bzero(ch, 2);
 
-	int need = sizeof(buffer);
+	int need = sizeof(buffer) - 1;
 	timeout = 0;
 	memset(tmp, '\0', MAXLEN);
 
@@ -180,7 +182,9 @@ void* GetResponse(void* argument) {
 	string HtmFile(tmp);
 	cout << "Page Content: " << endl;
 	cout << HtmFile << endl;
-	Analyse(HtmFile);
+	string keyword = GetKeyword(HtmFile);
+	cout << "Keyword : " << keyword << endl;
+	//Analyse(HtmFile);
 	flen = HtmFile.length();
 
 	int dir = chdir("Pages");
@@ -250,7 +254,7 @@ void* GetResponse(void* argument) {
 		int sock_fd;
 		timeout = 0;
 
-		while (ConnectWeb(sock_fd) < 0 && timeout < 10) {
+		while (ConnectWebHost(sock_fd) < 0 && timeout < 10) {
 			++timeout;
 		}
 		if (timeout >= 10) {
