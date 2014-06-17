@@ -105,8 +105,7 @@ string GetKeyword(string& src) {
 	string keys[] = { "id=\"kw\"", "id=\"word\"" };
 	unsigned len = sizeof(keys) / sizeof(keys[0]);
 	for (size_t i = 0; i < len; ++i) {
-		string key(keys[i]);
-		string::size_type pos = src.find(key);
+		string::size_type pos = src.find(keys[i]);
 		if (pos == string::npos)
 			continue;
 

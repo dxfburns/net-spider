@@ -225,8 +225,8 @@ int main() {
 //			GetResponse(arg);
 
 			function<void*(void*)> func = bind(GetResponse, _1);
-			func(arg);
-//			boost::thread th(func, arg);
+//			func(arg);
+			boost::thread th(func, arg);
 
 			struct epoll_event ev;
 			int r = epoll_ctl(epfd, EPOLL_CTL_DEL, arg->sockfd, &ev);
@@ -236,7 +236,7 @@ int main() {
 				continue;
 			}
 
-//			th.join();
+			th.join();
 		}
 	}
 

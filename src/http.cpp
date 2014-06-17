@@ -95,7 +95,7 @@ int SendRequest(int sockfd, URL& url_t) {
 	string Uagent = UAGENT, Conn = CONN, Accept = ACCEPT;
 	string sub_url = url_t.GetFile()[0] == '/' ? boost::replace_first_copy(url_t.GetFile(), "/", "") : url_t.GetFile();
 	request = "GET /" + sub_url + " HTTP/1.1\r\nHost: " + url_t.GetHost() + "\r\nUser-Agent: " + Uagent + "\r\nAccept: " + Accept + "\r\nConnection: "
-			+ Conn + "\r\n\r\n";
+			+ Conn + "\r\n\r\n";//without User-Agent,Connection,Accept is also okay
 	int d, total = request.length(), send = 0;
 	while (send < total) {
 		d = write(sockfd, request.c_str() + send, total - send);
